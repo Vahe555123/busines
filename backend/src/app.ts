@@ -19,7 +19,7 @@ export function createApp() {
   app.use('/api', apiRouter);
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'sax toshnia', timestamp: new Date().toISOString() });
   });
 
   app.use(notFound);
