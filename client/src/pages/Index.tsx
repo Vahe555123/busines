@@ -11,6 +11,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       <ParticleBackground />
+      <Navbar />
 
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 container mx-auto px-4 z-10">
         <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
