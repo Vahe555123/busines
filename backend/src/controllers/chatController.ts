@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { Conversation } from '../models/Conversation.js';
+import { Conversation, type IConversation } from '../models/Conversation.js';
 import { ChatMessage } from '../models/ChatMessage.js';
 import { Case } from '../models/Case.js';
 import { AppError } from '../utils/AppError.js';
@@ -31,12 +31,13 @@ export async function getOrCreateConversation(req: Request, res: Response): Prom
     });
   }
 
-  const messages = await ChatMessage.find({ conversationId: conv._id })
+  const convDoc = conv as IConversation;
+  const messages = await ChatMessage.find({ conversationId: convDoc._id })
     .sort({ createdAt: 1 })
     .lean();
 
   res.json({
-    conversationId: conv._id.toString(),
+    conversationId: convDoc._id.toString(),
     messages: messages.map((m) => ({
       _id: m._id.toString(),
       role: m.role,
@@ -80,16 +81,16 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
 
   const text = (content ?? '').trim();
   const images = Array.isArray(imageUrls) ? imageUrls : [];
-  const userContent = text + (images.length ? `\n[Прикреплено изображений: ${images.length}]` : '');
 
+  const convDoc = conv as IConversation;
   const userMsg = await ChatMessage.create({
-    conversationId: conv._id,
+    conversationId: convDoc._id,
     role: 'user',
     content: text || '(изображение)',
     imageUrls: images,
   });
 
-  const history = await ChatMessage.find({ conversationId: conv._id })
+  const history = await ChatMessage.find({ conversationId: convDoc._id })
     .sort({ createdAt: 1 })
     .lean();
   const aiMessages = history.map((m) => ({
@@ -99,23 +100,22 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
 
   let systemContext: string | undefined;
   if (caseId) {
-    const caseDoc = await Case.findById(caseId).select('title shortDescription category').lean();
+    const caseDoc = await Case.findById(caseId).select('title shortDescription category').lean() as { title: string; shortDescription: string; category: string } | null;
     if (caseDoc) {
-      const c = caseDoc as { title: string; shortDescription: string; category: string };
-      systemContext = `Кейс: «${c.title}». Категория: ${c.category}. Кратко: ${c.shortDescription}`;
+      systemContext = `Кейс: «${caseDoc.title}». Категория: ${caseDoc.category}. Кратко: ${caseDoc.shortDescription}`;
     }
   }
   const aiContent = await chatWithAI(aiMessages, systemContext);
 
   const assistantMsg = await ChatMessage.create({
-    conversationId: conv._id,
+    conversationId: convDoc._id,
     role: 'assistant',
     content: aiContent,
     imageUrls: [],
   });
 
   res.json({
-    conversationId: conv._id.toString(),
+    conversationId: convDoc._id.toString(),
     userMessage: {
       _id: userMsg._id.toString(),
       role: 'user',
@@ -147,7 +147,7 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
   res.json({ url: `${API_BASE}/uploads/chat/${filename}` });
 }
 
-export async function listConversationsAdmin(req: Request, res: Response): Promise<void> {
+export async function listConversationsAdmin(_req: Request, res: Response): Promise<void> {
   const list = await Conversation.find()
     .sort({ updatedAt: -1 })
     .populate('userId', 'email name')

@@ -3,7 +3,7 @@ import { AppError } from '../utils/AppError.js';
 import type { UserRole } from '../models/User.js';
 
 export function requireRole(...allowedRoles: UserRole[]) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     const user = req.user;
     if (!user) {
       throw new AppError('Требуется авторизация', 401);

@@ -28,10 +28,10 @@ export async function createContactRequest(req: Request, res: Response): Promise
   let caseId: mongoose.Types.ObjectId | undefined;
   let caseTitle: string | undefined;
   if (body.caseId) {
-    const caseDoc = await Case.findById(body.caseId).select('title').lean();
+    const caseDoc = await Case.findById(body.caseId).select('title').lean() as { _id: mongoose.Types.ObjectId; title: string } | null;
     if (caseDoc) {
-      caseId = caseDoc._id as mongoose.Types.ObjectId;
-      caseTitle = (caseDoc as { title: string }).title;
+      caseId = caseDoc._id;
+      caseTitle = caseDoc.title;
     }
   }
 
@@ -72,7 +72,7 @@ export async function getMyContactRequests(req: Request, res: Response): Promise
   res.json(list);
 }
 
-export async function getAllContactRequests(req: Request, res: Response): Promise<void> {
+export async function getAllContactRequests(_req: Request, res: Response): Promise<void> {
   const list = await ContactRequest.find()
     .sort({ createdAt: -1 })
     .lean()

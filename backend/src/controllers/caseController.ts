@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { Case } from '../models/Case.js';
 import { AppError } from '../utils/AppError.js';
 
-export async function listCases(req: Request, res: Response): Promise<void> {
+export async function listCases(_req: Request, res: Response): Promise<void> {
   const list = await Case.find({ isPublished: true })
     .sort({ order: 1, createdAt: -1 })
     .select('title slug category shortDescription imageUrl order createdAt')
@@ -19,7 +19,7 @@ export async function getCase(req: Request, res: Response): Promise<void> {
   res.json(doc);
 }
 
-export async function listCasesAdmin(req: Request, res: Response): Promise<void> {
+export async function listCasesAdmin(_req: Request, res: Response): Promise<void> {
   const list = await Case.find().sort({ order: 1, createdAt: -1 }).lean();
   res.json(list);
 }

@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose';
 
 export interface ICase extends Document {
   title: string;
