@@ -396,14 +396,6 @@ export default function Dashboard() {
             Тарифы
           </button>
           <button
-            onClick={() => setSection("users")}
-            className={`w-full text-left rounded-lg px-3 py-2 text-sm ${
-              section === "users" ? "bg-slate-800 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
-            }`}
-          >
-            Пользователи
-          </button>
-          <button
             onClick={() => setSection("chats")}
             className={`w-full text-left rounded-lg px-3 py-2 text-sm ${
               section === "chats" ? "bg-slate-800 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
