@@ -1,5 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
+const API_BASE =
+  window.location.hostname === "https"
+    ? "http://localhost:3001"
+    : "https://server-auto-busines.duckdns.org";
 export type UserRole = "client" | "manager" | "admin";
 export type UserStatus = "active" | "blocked";
 
@@ -85,7 +87,7 @@ function getToken(): string | null {
 
 async function request<T>(
   path: string,
-  options: RequestInit & { token?: boolean } = {}
+  options: RequestInit & { token?: boolean } = {},
 ): Promise<T> {
   const { token = false, ...fetchOptions } = options;
   const headers: HeadersInit = {
@@ -93,7 +95,8 @@ async function request<T>(
     ...((fetchOptions.headers as Record<string, string>) ?? {}),
   };
   const t = getToken();
-  if (token && t) (headers as Record<string, string>)["Authorization"] = `Bearer ${t}`;
+  if (token && t)
+    (headers as Record<string, string>)["Authorization"] = `Bearer ${t}`;
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...fetchOptions,
@@ -132,14 +135,13 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  me: () =>
-    request<MeResponse>("/api/auth/me", { method: "GET", token: true }),
+  me: () => request<MeResponse>("/api/auth/me", { method: "GET", token: true }),
 
   pricing: {
     list: (lang?: string) =>
       request<PricingItem[]>(
         lang ? `/api/pricing?lang=${encodeURIComponent(lang)}` : "/api/pricing",
-        { method: "GET" }
+        { method: "GET" },
       ),
   },
 
@@ -151,18 +153,29 @@ export const api = {
         token: true,
       }),
     createPayment: (pricingId: string) =>
-      request<{ paymentId: string; confirmationUrl: string | null }>("/api/purchases/create-payment", {
-        method: "POST",
-        body: JSON.stringify({ pricingId }),
+      request<{ paymentId: string; confirmationUrl: string | null }>(
+        "/api/purchases/create-payment",
+        {
+          method: "POST",
+          body: JSON.stringify({ pricingId }),
+          token: true,
+        },
+      ),
+    checkPayment: (paymentId: string) =>
+      request<{
+        paymentId: string;
+        status: string;
+        amount: number;
+        title: string;
+      }>(`/api/purchases/check-payment/${encodeURIComponent(paymentId)}`, {
+        method: "GET",
         token: true,
       }),
-    checkPayment: (paymentId: string) =>
-      request<{ paymentId: string; status: string; amount: number; title: string }>(
-        `/api/purchases/check-payment/${encodeURIComponent(paymentId)}`,
-        { method: "GET", token: true }
-      ),
     getMy: () =>
-      request<PurchaseItem[]>("/api/purchases/me", { method: "GET", token: true }),
+      request<PurchaseItem[]>("/api/purchases/me", {
+        method: "GET",
+        token: true,
+      }),
   },
 
   contactRequests: {
@@ -189,7 +202,9 @@ export const api = {
   cases: {
     list: () => request<CaseListItem[]>("/api/cases", { method: "GET" }),
     get: (id: string) =>
-      request<CaseDetail>(`/api/cases/${encodeURIComponent(id)}`, { method: "GET" }),
+      request<CaseDetail>(`/api/cases/${encodeURIComponent(id)}`, {
+        method: "GET",
+      }),
   },
 
   chat: {
@@ -198,7 +213,7 @@ export const api = {
         sessionId
           ? `/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`
           : "/api/chat/history",
-        { method: "GET", token: true }
+        { method: "GET", token: true },
       ),
     send: (body: {
       conversationId?: string;
@@ -221,14 +236,20 @@ export const api = {
       form.append("image", file);
       const token = getToken();
       const headers: HeadersInit = {};
-      if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+      if (token)
+        (headers as Record<string, string>)["Authorization"] =
+          `Bearer ${token}`;
       return fetch(`${API_BASE}/api/chat/upload`, {
         method: "POST",
         body: form,
         headers,
       }).then((res) => {
         if (!res.ok)
-          return res.json().then((d) => Promise.reject(new Error(d?.error ?? "Upload failed")));
+          return res
+            .json()
+            .then((d) =>
+              Promise.reject(new Error(d?.error ?? "Upload failed")),
+            );
         return res.json() as Promise<{ url: string }>;
       });
     },

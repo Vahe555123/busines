@@ -1,5 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
+const API_BASE =
+  window.location.hostname === "https"
+    ? "http://localhost:3001"
+    : "https://server-auto-busines.duckdns.org";
 export type UserRole = "client" | "manager" | "admin";
 export type UserStatus = "active" | "blocked";
 
