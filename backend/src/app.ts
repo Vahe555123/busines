@@ -24,6 +24,7 @@ export function createApp() {
 
   app.use(notFound);
   app.use(errorHandler);
-
+  console.log(1);
+  
   return app;
 }
