@@ -57,7 +57,10 @@ backend/
 - `POST /api/auth/verify-email` — подтверждение почты (body: `{ "email", "code" }`).
 - `POST /api/auth/resend-code` — повторная отправка кода (body: `{ "email" }`).
 - `POST /api/auth/login` — вход (body: `{ "email", "password" }`). В ответе — `token` и `user`.
+- `GET /api/auth/google` — редирект на Google OAuth. После входа Google редирект на `GET /api/auth/google/callback?code=...`, затем на фронт `FRONTEND_URL/auth/callback?token=...`.
 - `GET /api/auth/me` — данные текущего пользователя (в т.ч. `role`). Заголовок: `Authorization: Bearer <token>`.
+
+**Google OAuth:** в Google Cloud Console создать OAuth 2.0 Client ID (тип «Веб-приложение»), указать Authorized redirect URI: `https://ваш-бэкенд/api/auth/google/callback`. В `.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FRONTEND_URL`, `API_BASE_URL`.
 
 ### Роли и статус пользователя
 

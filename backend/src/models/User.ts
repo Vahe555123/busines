@@ -5,7 +5,8 @@ export type UserStatus = 'active' | 'blocked';
 
 export interface IUser extends Document {
   email: string;
-  password: string;
+  password?: string;
+  googleId?: string;
   name?: string;
   role: UserRole;
   status: UserStatus;
@@ -19,7 +20,8 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6, select: false },
+    password: { type: String, minlength: 6, select: false },
+    googleId: { type: String, unique: true, sparse: true },
     name: { type: String, trim: true },
     role: { type: String, enum: ['client', 'manager', 'admin'], default: 'client' },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' },

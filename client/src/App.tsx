@@ -15,6 +15,7 @@ import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Contacts from "./pages/Contacts";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import Profile from "./pages/Profile";
 import PaymentReturn from "./pages/PaymentReturn";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/faq" element={<FAQ />} />
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/payment/return" element={<PaymentReturn />} />
             <Route path="*" element={<NotFound />} />

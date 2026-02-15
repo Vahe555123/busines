@@ -51,7 +51,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     throw new AppError('Пользователь с таким email уже зарегистрирован', 409);
   }
 
-  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  const hashedPassword = await bcrypt.hash(password!, SALT_ROUNDS);
   const verificationCode = generateVerificationCode();
   const verificationCodeExpires = getVerificationExpires();
 
@@ -149,6 +149,12 @@ export async function login(req: Request, res: Response): Promise<void> {
   if (!user) {
     throw new AppError('Неверный email или пароль', 401);
   }
+  if (user.googleId) {
+    throw new AppError('Войдите через Google', 400);
+  }
+  if (!user.password) {
+    throw new AppError('Неверный email или пароль', 401);
+  }
 
   const match = await bcrypt.compare(password, user.password);
   if (!match) {
@@ -170,4 +176,86 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     throw new AppError('Пользователь не найден', 401);
   }
   res.json({ user: toSafeUser(user) });
+}
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
+const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3001';
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:8080';
+
+export function googleRedirect(_req: Request, res: Response): void {
+  if (!GOOGLE_CLIENT_ID) {
+    res.redirect(`${FRONTEND_URL}/auth?error=google_not_configured`);
+    return;
+  }
+  const redirectUri = `${API_BASE_URL}/api/auth/google/callback`;
+  const scope = encodeURIComponent('openid email profile');
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+  res.redirect(url);
+}
+
+export async function googleCallback(req: Request, res: Response): Promise<void> {
+  const { code, error } = req.query as { code?: string; error?: string };
+  if (error || !code) {
+    res.redirect(`${FRONTEND_URL}/auth?error=${error ?? 'no_code'}`);
+    return;
+  }
+  if (!GOOGLE_CLIENT_SECRET) {
+    res.redirect(`${FRONTEND_URL}/auth?error=google_not_configured`);
+    return;
+  }
+
+  const redirectUri = `${API_BASE_URL}/api/auth/google/callback`;
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  });
+  const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
+  if (!tokenData.access_token) {
+    res.redirect(`${FRONTEND_URL}/auth?error=token_failed`);
+    return;
+  }
+
+  const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${tokenData.access_token}` },
+  });
+  const profile = (await userRes.json()) as { id?: string; email?: string; name?: string };
+  if (!profile.email) {
+    res.redirect(`${FRONTEND_URL}/auth?error=no_email`);
+    return;
+  }
+
+  const email = profile.email.toLowerCase();
+  let user = await User.findOne({ googleId: profile.id });
+  if (!user) {
+    user = await User.findOne({ email });
+    if (user) {
+      user.googleId = profile.id;
+      user.name = user.name || profile.name;
+      user.isVerified = true;
+      await user.save();
+    } else {
+      user = await User.create({
+        email,
+        googleId: profile.id,
+        name: profile.name?.trim(),
+        isVerified: true,
+      });
+    }
+  }
+
+  if (user.status === 'blocked') {
+    res.redirect(`${FRONTEND_URL}/auth?error=blocked`);
+    return;
+  }
+
+  const token = signToken({ userId: (user._id as { toString(): string }).toString(), email: user.email });
+  res.redirect(`${FRONTEND_URL}/auth/callback?token=${encodeURIComponent(token)}`);
 }
